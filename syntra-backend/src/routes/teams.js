@@ -77,9 +77,10 @@ router.get("/:id", authMiddleware, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const membershipCheck = await pool.query(
-      `SELECT is_team_member($1, $2) `[(id, userId)],
-    );
+    const membershipCheck = await pool.query(`SELECT is_team_member($1, $2)`, [
+      id,
+      userId,
+    ]);
 
     if (!membershipCheck.rows[0].is_team_member) {
       return res.status(403).json({
@@ -121,7 +122,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
       data: team,
     });
   } catch (error) {
-    console.error("Error fetching team details");
+    console.error("Error fetching team details", error);
     res.status(500).json({
       success: false,
       message: "failed to fetch team details",
@@ -204,7 +205,7 @@ router.post("/:id/members", authMiddleware, async (req, res) => {
     });
   }
 
-  router.put("/", authMiddleware, async (req, res) => {
+  router.put("/:id", authMiddleware, async (req, res) => {
     try {
       const { id: teamId } = req.params;
       const { name, description } = req.body;
