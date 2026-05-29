@@ -83,6 +83,7 @@ router.get("/", authMiddleware, async (req, res) => {
     const result = await pool.query(
       `SELECT p.id, p.name, p.description, p.status, p.priority, 
               p.start_date, p.due_date, p.created_at,
+              p.team_id,
               t.name as team_name,
               u.full_name as created_by_name
        FROM projects p

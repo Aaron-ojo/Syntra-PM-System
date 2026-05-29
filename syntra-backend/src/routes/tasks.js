@@ -1,38 +1,11 @@
-// ============================================
-// IMPORT DEPENDENCIES
-// ============================================
-// express - for creating route handlers
-// pool - database connection from our config
-// authMiddleware - verifies JWT token and attaches user to req.user
-// ============================================
 import express from "express";
 import pool from "../config/db.js";
 import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
-// ============================================
-// ENDPOINT 1: CREATE A NEW TASK
-// POST /api/tasks
-// ============================================
-// WHAT THIS DOES:
-// - Creates a new task under a specific project
-// - Only team members can create tasks
-// - The creator becomes the task owner (created_by)
-// - Supports subtasks via parent_task_id
-// ============================================
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    // STEP 1: Extract data from request body
-    // - title: task name (required)
-    // - description: detailed explanation (optional)
-    // - project_id: which project this task belongs to (required)
-    // - assigned_to: user ID of person responsible (optional)
-    // - priority: low/medium/high/urgent (defaults to medium)
-    // - status: todo/in_progress/review/done (defaults to todo)
-    // - due_date: deadline (optional)
-    // - parent_task_id: for subtasks (optional)
-    // - labels: array of tags like ['bug', 'urgent'] (optional)
     const {
       title,
       description,
@@ -161,20 +134,6 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-// ============================================
-// ENDPOINT 2: GET ALL TASKS (WITH FILTERS)
-// GET /api/tasks
-// Query parameters (optional):
-//   - project_id: filter by project
-//   - assigned_to: filter by assigned user
-//   - status: filter by status (todo/in_progress/review/done)
-//   - priority: filter by priority (low/medium/high/urgent)
-// ============================================
-// WHAT THIS DOES:
-// - Returns all tasks the user has access to
-// - Can filter by project, assignee, status, priority
-// - Only shows tasks from teams the user belongs to
-// ============================================
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -182,17 +141,6 @@ router.get("/", authMiddleware, async (req, res) => {
     // Example: /api/tasks?project_id=123&status=in_progress
     const { project_id, assigned_to, status, priority } = req.query;
 
-    // ============================================
-    // BASE QUERY - Gets tasks from user's teams
-    // ============================================
-    // We join multiple tables:
-    // - tasks: the main table
-    // - projects: to get project name and team_id
-    // - teams: to filter by team membership
-    // - team_members: to check which teams user belongs to
-    // - users (creator): to get creator's name
-    // - users (assignee): to get assignee's name
-    // ============================================
     let query = `
       SELECT t.id, t.title, t.description, t.status, t.priority, 
              t.story_points, t.due_date, t.completed_at, t.created_at,
@@ -209,9 +157,6 @@ router.get("/", authMiddleware, async (req, res) => {
       WHERE tm.user_id = $1
     `;
 
-    // ============================================
-    // DYNAMIC FILTERS - Add conditions based on query params
-    // ============================================
     const queryParams = [userId];
     let paramCounter = 2;
 
@@ -261,15 +206,6 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// ============================================
-// ENDPOINT 3: GET SINGLE TASK BY ID
-// GET /api/tasks/:id
-// ============================================
-// WHAT THIS DOES:
-// - Returns a single task with all its details
-// - Includes subtasks (child tasks)
-// - User must be a member of the task's team
-// ============================================
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -341,15 +277,6 @@ router.get("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// ============================================
-// ENDPOINT 4: UPDATE A TASK
-// PUT /api/tasks/:id
-// ============================================
-// WHAT THIS DOES:
-// - Updates any field of a task
-// - Only assignee, creator, or team admin can update
-// - Uses COALESCE for partial updates (only update provided fields)
-// ============================================
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -448,22 +375,26 @@ router.put("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// ============================================
-// ENDPOINT 5: UPDATE TASK STATUS (QUICK UPDATE)
-// PATCH /api/tasks/:id/status
-// ============================================
-// WHAT THIS DOES:
-// - Convenience endpoint for quickly changing task status
-// - This is the most common task update
-// - Only assignee, creator, or admin can update status
-// ============================================
 router.patch("/:id/status", authMiddleware, async (req, res) => {
   try {
+    console.log("PATCH STATUS HIT");
+
     const { id } = req.params;
     const { status } = req.body;
+
+    console.log("Task ID:", id);
+    console.log("New Status:", status);
+    console.log("User:", req.user);
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
     const userId = req.user.id;
 
-    // Validate status is provided
     if (!status) {
       return res.status(400).json({
         success: false,
@@ -471,23 +402,26 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
       });
     }
 
-    // Validate status is valid
     const validStatuses = ["todo", "in_progress", "review", "done"];
+
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid status. Must be: todo, in_progress, review, or done",
+        message: "Invalid status",
       });
     }
 
-    // Check permission
     const taskCheck = await pool.query(
-      `SELECT t.created_by, t.assigned_to, p.team_id
-       FROM tasks t
-       JOIN projects p ON t.project_id = p.id
-       WHERE t.id = $1`,
+      `
+      SELECT t.created_by, t.assigned_to, p.team_id
+      FROM tasks t
+      JOIN projects p ON t.project_id = p.id
+      WHERE t.id = $1
+      `,
       [id],
     );
+
+    console.log("Task Check:", taskCheck.rows);
 
     if (taskCheck.rows.length === 0) {
       return res.status(404).json({
@@ -497,56 +431,68 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
     }
 
     const task = taskCheck.rows[0];
-    const isAssignee = task.assigned_to === userId;
-    const isCreator = task.created_by === userId;
+
+    const isAssignee = String(task.assigned_to) === String(userId);
+
+    const isCreator = String(task.created_by) === String(userId);
 
     const adminCheck = await pool.query(
-      `SELECT role FROM team_members 
-       WHERE team_id = $1 AND user_id = $2 AND role = 'admin'`,
+      `
+      SELECT role
+      FROM team_members
+      WHERE team_id = $1
+      AND user_id = $2
+      AND role = 'admin'
+      `,
       [task.team_id, userId],
     );
 
     const isAdmin = adminCheck.rows.length > 0;
 
+    console.log({
+      isAssignee,
+      isCreator,
+      isAdmin,
+    });
+
     if (!isAssignee && !isCreator && !isAdmin) {
       return res.status(403).json({
         success: false,
-        message: "You do not have permission to update this task status",
+        message: "You do not have permission to update this task",
       });
     }
 
-    // Update status
+    const completedAt = status === "done" ? new Date() : null;
+
     const result = await pool.query(
-      `UPDATE tasks 
-       SET status = $1,
-           completed_at = CASE WHEN $1 = 'done' THEN CURRENT_TIMESTAMP ELSE NULL END
-       WHERE id = $2
-       RETURNING *`,
-      [status, id],
+      `
+      UPDATE tasks
+      SET status = $1,
+          completed_at = $2
+      WHERE id = $3
+      RETURNING *
+      `,
+      [status, completedAt, id],
     );
+
+    console.log("Updated Task:", result.rows[0]);
 
     res.json({
       success: true,
-      message: `Task status updated to ${status}`,
+      message: "Task status updated",
       data: result.rows[0],
     });
   } catch (error) {
-    console.error("Error updating task status:", error);
+    console.error("PATCH STATUS ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to update task status",
+      error: error.message,
     });
   }
 });
 
-// ============================================
-// ENDPOINT 6: DELETE A TASK
-// DELETE /api/tasks/:id
-// ============================================
-// WHAT THIS DOES:
-// - Deletes a task and all its subtasks (due to CASCADE)
-// - Only creator or team admin can delete
-// ============================================
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;

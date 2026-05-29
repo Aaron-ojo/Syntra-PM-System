@@ -1,21 +1,9 @@
-// ============================================
-// IMPORT DEPENDENCIES
-// ============================================
-// express - for creating route handlers
-// pool - database connection from our config
-// authMiddleware - verifies JWT token and attaches user to req.user
-// ============================================
 import express from "express";
 import pool from "../config/db.js";
 import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
-// ============================================
-// HELPER FUNCTION: Create Notification
-// This function is called internally when a comment is added
-// It notifies the task assignee that someone commented
-// ============================================
 async function createNotification(
   userId,
   type,
@@ -42,24 +30,8 @@ async function createNotification(
   }
 }
 
-// ============================================
-// ENDPOINT 1: ADD COMMENT TO TASK
-// POST /api/comments
-// ============================================
-// WHAT THIS DOES:
-// - Adds a comment to a specific task
-// - User must be a member of the task's team
-// - Automatically notifies the task assignee (if different from commenter)
-// - Supports replying to other comments via parent_comment_id
-// - Supports attachments (JSON array of file URLs)
-// ============================================
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    // STEP 1: Extract data from request body
-    // - content: the comment text (required)
-    // - task_id: which task this comment belongs to (required)
-    // - parent_comment_id: for replies to other comments (optional)
-    // - attachments: array of file URLs (optional)
     const { content, task_id, parent_comment_id, attachments } = req.body;
     const userId = req.user.id;
 
@@ -71,8 +43,6 @@ router.post("/", authMiddleware, async (req, res) => {
       });
     }
 
-    // STEP 3: Check if user has access to this task
-    // User must be a member of the team that owns the task's project
     const accessCheck = await pool.query(
       `SELECT t.id, t.assigned_to, t.created_by, p.team_id
        FROM tasks t
@@ -92,8 +62,6 @@ router.post("/", authMiddleware, async (req, res) => {
 
     const task = accessCheck.rows[0];
 
-    // STEP 4: If replying to another comment, verify parent comment exists
-    // and belongs to the same task
     if (parent_comment_id) {
       const parentCheck = await pool.query(
         `SELECT id, task_id FROM comments WHERE id = $1`,
@@ -169,17 +137,7 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-// ============================================
-// ENDPOINT 2: GET ALL COMMENTS FOR A TASK
-// GET /api/tasks/:taskId/comments
-// ============================================
-// WHAT THIS DOES:
-// - Returns all comments for a specific task
-// - Includes replies nested under parent comments
-// - Shows comment author name and avatar
-// - User must have access to the task
-// ============================================
-router.get("/tasks/:taskId/comments", authMiddleware, async (req, res) => {
+router.get("/task/:taskId", authMiddleware, async (req, res) => {
   try {
     const { taskId } = req.params;
     const userId = req.user.id;
@@ -250,16 +208,6 @@ router.get("/tasks/:taskId/comments", authMiddleware, async (req, res) => {
   }
 });
 
-// ============================================
-// ENDPOINT 3: UPDATE A COMMENT
-// PUT /api/comments/:id
-// ============================================
-// WHAT THIS DOES:
-// - Updates a comment's content
-// - Only the comment author can update
-// - Sets is_edited flag to true
-// - Shows "edited" indicator on frontend
-// ============================================
 router.put("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
