@@ -73,17 +73,18 @@ export interface Task {
 }
 
 // Comment Interface
+// Comment Interface
 export interface Comment {
   id: string;
   content: string;
   task_id: string;
   user_id: string;
-  parent_comment_id?: string; // Changed from parent_id
-  parent_id?: string; // Keep for compatibility if needed
+  parent_comment_id?: string;
   created_at: string;
   updated_at?: string;
   is_edited?: boolean;
   attachments?: string[];
+  user_name?: string;
   user?: {
     id: string;
     name: string;
@@ -91,4 +92,18 @@ export interface Comment {
     avatar_url?: string;
   };
   replies?: Comment[];
+}
+// Notification Types
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: "task_assigned" | "comment_added" | "comment_reply" | "status_changed";
+  title: string;
+  content: string;
+  read: boolean;
+  data?: {
+    task_id?: string;
+    comment_id?: string;
+  };
+  created_at: string;
 }

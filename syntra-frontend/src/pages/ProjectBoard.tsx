@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import taskService from '../services/taskService'
-import projectService from '../services/projectService'
-import TaskDetailsModal from '../components/TaskDetailsModal'
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import taskService from "../services/taskService";
+import projectService from "../services/projectService";
+import TaskDetailsModal from "../components/TaskDetailsModal";
 
 import {
   DndContext,
@@ -13,65 +13,52 @@ import {
   useSensors,
   DragOverlay,
   useDroppable,
-} from '@dnd-kit/core'
+} from "@dnd-kit/core";
 
-import type {
-  DragEndEvent,
-  DragStartEvent,
-} from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
-} from '@dnd-kit/sortable'
+} from "@dnd-kit/sortable";
 
-import { CSS } from '@dnd-kit/utilities'
+import { CSS } from "@dnd-kit/utilities";
 
-import {
-  ArrowLeft,
-  Plus,
-  MoreVertical,
-  Calendar,
-  X,
-} from 'lucide-react'
+import { ArrowLeft, Plus, MoreVertical, Calendar, X } from "lucide-react";
 
-import type {
-  Task,
-  SyntraTaskStatus,
-  SyntraTaskPriority,
-} from '../types'
+import type { Task, SyntraTaskStatus, SyntraTaskPriority } from "../types";
 
 interface Project {
-  id: string
-  name: string
-  description?: string
-  team_id: string
-  team_name?: string
+  id: string;
+  name: string;
+  description?: string;
+  team_id: string;
+  team_name?: string;
 }
 
 const statusColumns: {
-  id: SyntraTaskStatus
-  title: string
-  color: string
+  id: SyntraTaskStatus;
+  title: string;
+  color: string;
 }[] = [
-  { id: 'todo', title: 'To Do', color: 'bg-gray-100' },
-  { id: 'in_progress', title: 'In Progress', color: 'bg-blue-100' },
-  { id: 'review', title: 'Review', color: 'bg-yellow-100' },
-  { id: 'done', title: 'Done', color: 'bg-green-100' },
-]
+  { id: "todo", title: "To Do", color: "bg-gray-100" },
+  { id: "in_progress", title: "In Progress", color: "bg-blue-100" },
+  { id: "review", title: "Review", color: "bg-yellow-100" },
+  { id: "done", title: "Done", color: "bg-green-100" },
+];
 
 const priorityColors: Record<SyntraTaskPriority, string> = {
-  low: 'bg-green-100 text-green-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  high: 'bg-orange-100 text-orange-700',
-  urgent: 'bg-red-100 text-red-700',
-}
+  low: "bg-green-100 text-green-700",
+  medium: "bg-yellow-100 text-yellow-700",
+  high: "bg-orange-100 text-orange-700",
+  urgent: "bg-red-100 text-red-700",
+};
 
 interface SortableTaskCardProps {
-  task: Task
-  onTaskClick: (task: Task) => void
+  task: Task;
+  onTaskClick: (task: Task) => void;
 }
 
 const SortableTaskCard: React.FC<SortableTaskCardProps> = ({
@@ -87,13 +74,13 @@ const SortableTaskCard: React.FC<SortableTaskCardProps> = ({
     isDragging,
   } = useSortable({
     id: task.id,
-  })
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-  }
+  };
 
   return (
     <div
@@ -140,31 +127,25 @@ const SortableTaskCard: React.FC<SortableTaskCardProps> = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 interface ColumnProps {
-  column: typeof statusColumns[0]
-  tasks: Task[]
-  onTaskClick: (task: Task) => void
+  column: (typeof statusColumns)[0];
+  tasks: Task[];
+  onTaskClick: (task: Task) => void;
 }
 
-const Column: React.FC<ColumnProps> = ({
-  column,
-  tasks,
-  onTaskClick,
-}) => {
+const Column: React.FC<ColumnProps> = ({ column, tasks, onTaskClick }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
-  })
+  });
 
   return (
     <div className="w-80 flex-shrink-0">
       <div className={`${column.color} rounded-t-lg p-3`}>
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">
-            {column.title}
-          </h3>
+          <h3 className="font-semibold text-gray-900">{column.title}</h3>
 
           <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full">
             {tasks.length}
@@ -181,7 +162,7 @@ const Column: React.FC<ColumnProps> = ({
           p-2
           min-h-[500px]
           transition-all
-          ${isOver ? 'ring-2 ring-blue-500' : ''}
+          ${isOver ? "ring-2 ring-blue-500" : ""}
         `}
       >
         <SortableContext
@@ -199,34 +180,32 @@ const Column: React.FC<ColumnProps> = ({
 
         {tasks.length === 0 && (
           <div className="flex items-center justify-center h-32 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-xs text-gray-400">
-              Drop tasks here
-            </p>
+            <p className="text-xs text-gray-400">Drop tasks here</p>
           </div>
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 const ProjectBoard: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>()
-  const navigate = useNavigate()
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
 
-  const [project, setProject] = useState<Project | null>(null)
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [activeTask, setActiveTask] = useState<Task | null>(null)
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [project, setProject] = useState<Project | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const [newTask, setNewTask] = useState({
-    title: '',
-    description: '',
-    priority: 'medium' as SyntraTaskPriority,
-  })
+    title: "",
+    description: "",
+    priority: "medium" as SyntraTaskPriority,
+  });
 
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreating] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -237,46 +216,44 @@ const ProjectBoard: React.FC = () => {
 
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
+    }),
+  );
 
   useEffect(() => {
     if (projectId) {
-      loadProject()
-      loadTasks()
+      loadProject();
+      loadTasks();
     }
-  }, [projectId])
+  }, [projectId]);
 
   const loadProject = async () => {
     try {
-      const data = await projectService.getProject(projectId!)
-      setProject(data)
+      const data = await projectService.getProject(projectId!);
+      setProject(data);
     } catch (error) {
-      console.error('Failed to load project:', error)
+      console.error("Failed to load project:", error);
     }
-  }
+  };
 
   const loadTasks = async () => {
-    setLoading(true)
+    setLoading(true);
 
     try {
-      const data = await taskService.getTasks(projectId!)
-      setTasks(data)
+      const data = await taskService.getTasks(projectId!);
+      setTasks(data);
     } catch (error) {
-      console.error('Failed to load tasks:', error)
+      console.error("Failed to load tasks:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleCreateTask = async (
-    e: React.FormEvent
-  ) => {
-    e.preventDefault()
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    if (!newTask.title.trim()) return
+    if (!newTask.title.trim()) return;
 
-    setCreating(true)
+    setCreating(true);
 
     try {
       const task = await taskService.createTask({
@@ -284,80 +261,64 @@ const ProjectBoard: React.FC = () => {
         description: newTask.description,
         project_id: projectId!,
         priority: newTask.priority,
-      })
+      });
 
-      setTasks((prev) => [task, ...prev])
+      setTasks((prev) => [task, ...prev]);
 
-      setShowCreateModal(false)
+      setShowCreateModal(false);
 
       setNewTask({
-        title: '',
-        description: '',
-        priority: 'medium',
-      })
+        title: "",
+        description: "",
+        priority: "medium",
+      });
     } catch (error) {
-      console.error('Failed to create task:', error)
+      console.error("Failed to create task:", error);
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
 
-  const getTasksByStatus = (
-    status: SyntraTaskStatus
-  ) => {
+  const getTasksByStatus = (status: SyntraTaskStatus) => {
     return tasks
       .filter((task) => task.status === status)
-      .sort((a, b) => a.position - b.position)
-  }
+      .sort((a, b) => a.position - b.position);
+  };
 
-  const handleDragStart = (
-    event: DragStartEvent
-  ) => {
-    const task = tasks.find(
-      (t) => t.id === event.active.id
-    )
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find((t) => t.id === event.active.id);
 
     if (task) {
-      setActiveTask(task)
+      setActiveTask(task);
     }
-  }
+  };
 
-  const handleDragEnd = async (
-    event: DragEndEvent
-  ) => {
-    const { active, over } = event
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
 
-    setActiveTask(null)
+    setActiveTask(null);
 
-    if (!over) return
+    if (!over) return;
 
-    const draggedTask = tasks.find(
-      (t) => t.id === active.id
-    )
+    const draggedTask = tasks.find((t) => t.id === active.id);
 
-    if (!draggedTask) return
+    if (!draggedTask) return;
 
-    let targetStatus: SyntraTaskStatus
+    let targetStatus: SyntraTaskStatus;
 
     // Dropped on column
-    if (
-      statusColumns.some(
-        (column) => column.id === over.id
-      )
-    ) {
-      targetStatus = over.id as SyntraTaskStatus
+    if (statusColumns.some((column) => column.id === over.id)) {
+      targetStatus = over.id as SyntraTaskStatus;
     } else {
       // Dropped on another task
-      const targetTask = tasks.find(
-        (t) => t.id === over.id
-      )
+      const targetTask = tasks.find((t) => t.id === over.id);
 
-      if (!targetTask) return
+      if (!targetTask) return;
 
-      targetStatus = targetTask.status
+      targetStatus = targetTask.status;
     }
 
-    if (draggedTask.status === targetStatus) return
+    if (draggedTask.status === targetStatus) return;
 
     // Optimistic update
     setTasks((prev) =>
@@ -367,29 +328,26 @@ const ProjectBoard: React.FC = () => {
               ...task,
               status: targetStatus,
             }
-          : task
-      )
-    )
+          : task,
+      ),
+    );
 
     try {
       await taskService.updateTaskStatus(
         draggedTask.id,
         targetStatus,
-        getTasksByStatus(targetStatus).length
-      )
+        getTasksByStatus(targetStatus).length,
+      );
     } catch (error) {
-      console.error(
-        'Failed to update task status:',
-        error
-      )
+      console.error("Failed to update task status:", error);
 
-      loadTasks()
+      loadTasks();
     }
-  }
+  };
 
   const handleTaskClick = (task: Task) => {
-    setSelectedTaskId(task.id)
-  }
+    setSelectedTaskId(task.id);
+  };
 
   if (loading && !project) {
     return (
@@ -397,12 +355,10 @@ const ProjectBoard: React.FC = () => {
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 
-          <p className="text-gray-600">
-            Loading board...
-          </p>
+          <p className="text-gray-600">Loading board...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -411,11 +367,7 @@ const ProjectBoard: React.FC = () => {
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center space-x-3">
           <button
-            onClick={() =>
-              navigate(
-                `/team/${project?.team_id || ''}`
-              )
-            }
+            onClick={() => navigate(`/team/${project?.team_id || ""}`)}
             className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg active:bg-gray-200"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -434,9 +386,7 @@ const ProjectBoard: React.FC = () => {
           </div>
 
           <button
-            onClick={() =>
-              setShowCreateModal(true)
-            }
+            onClick={() => setShowCreateModal(true)}
             className="flex items-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm active:bg-blue-700"
           >
             <Plus className="w-4 h-4" />
@@ -498,9 +448,7 @@ const ProjectBoard: React.FC = () => {
         <div className="fixed inset-0 z-50">
           <div
             className="absolute inset-0 bg-black bg-opacity-50"
-            onClick={() =>
-              setShowCreateModal(false)
-            }
+            onClick={() => setShowCreateModal(false)}
           />
 
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl animate-slide-up">
@@ -514,9 +462,7 @@ const ProjectBoard: React.FC = () => {
               </h2>
 
               <button
-                onClick={() =>
-                  setShowCreateModal(false)
-                }
+                onClick={() => setShowCreateModal(false)}
                 className="p-2 hover:bg-gray-100 rounded-full"
               >
                 <X className="w-5 h-5 text-gray-500" />
@@ -571,10 +517,10 @@ const ProjectBoard: React.FC = () => {
                   <div className="grid grid-cols-4 gap-2">
                     {(
                       [
-                        'low',
-                        'medium',
-                        'high',
-                        'urgent',
+                        "low",
+                        "medium",
+                        "high",
+                        "urgent",
                       ] as SyntraTaskPriority[]
                     ).map((p) => (
                       <button
@@ -589,7 +535,7 @@ const ProjectBoard: React.FC = () => {
                         className={`px-3 py-2 rounded-lg text-sm font-medium capitalize ${
                           newTask.priority === p
                             ? `${priorityColors[p]} ring-2 ring-blue-500`
-                            : 'bg-gray-100 text-gray-600'
+                            : "bg-gray-100 text-gray-600"
                         }`}
                       >
                         {p}
@@ -601,9 +547,7 @@ const ProjectBoard: React.FC = () => {
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowCreateModal(false)
-                    }
+                    onClick={() => setShowCreateModal(false)}
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700"
                   >
                     Cancel
@@ -611,15 +555,10 @@ const ProjectBoard: React.FC = () => {
 
                   <button
                     type="submit"
-                    disabled={
-                      creating ||
-                      !newTask.title.trim()
-                    }
+                    disabled={creating || !newTask.title.trim()}
                     className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg disabled:opacity-50"
                   >
-                    {creating
-                      ? 'Creating...'
-                      : 'Create Task'}
+                    {creating ? "Creating..." : "Create Task"}
                   </button>
                 </div>
               </form>
@@ -654,7 +593,7 @@ const ProjectBoard: React.FC = () => {
         }
       `}</style>
     </div>
-  )
-}
+  );
+};
 
-export default ProjectBoard
+export default ProjectBoard;

@@ -10,7 +10,6 @@ interface ApiResponse<T> {
 
 const commentService = {
   // Get all comments for a task
-  // Get all comments for a task
   getComments: async (taskId: string): Promise<Comment[]> => {
     console.log("Fetching comments for task:", taskId);
     try {
@@ -25,11 +24,11 @@ const commentService = {
     }
   },
 
-  // Create a new comment
+  // Create a new comment or reply
   createComment: async (data: {
     content: string;
     task_id: string;
-    parent_comment_id?: string; // Changed from parent_id to parent_comment_id
+    parent_comment_id?: string;
   }): Promise<Comment> => {
     console.log("Creating comment:", data);
     try {

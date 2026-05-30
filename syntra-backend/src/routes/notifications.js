@@ -4,12 +4,13 @@ import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
+// GET /api/notifications - Get all notifications for current user
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
 
     const result = await pool.query(
-      `SELECT id, type, title, content, data, is_read, created_at
+      `SELECT id, type, title, content, data, is_read as read, created_at
        FROM notifications
        WHERE user_id = $1
        ORDER BY created_at DESC`,
@@ -30,6 +31,7 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/notifications/unread-count - Get unread count
 router.get("/unread-count", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -54,30 +56,41 @@ router.get("/unread-count", authMiddleware, async (req, res) => {
   }
 });
 
-router.get("/unread-count", authMiddleware, async (req, res) => {
+// PATCH /api/notifications/:id/read - Mark single notification as read
+router.patch("/:id/read", authMiddleware, async (req, res) => {
   try {
+    const { id } = req.params;
     const userId = req.user.id;
 
     const result = await pool.query(
-      `SELECT COUNT(*) as count
-       FROM notifications
-       WHERE user_id = $1 AND is_read = false`,
-      [userId],
+      `UPDATE notifications 
+       SET is_read = true, read_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND user_id = $2
+       RETURNING id`,
+      [id, userId],
     );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found",
+      });
+    }
 
     res.json({
       success: true,
-      unreadCount: parseInt(result.rows[0].count),
+      message: "Notification marked as read",
     });
   } catch (error) {
-    console.error("Error fetching unread count:", error);
+    console.error("Error marking notification as read:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch unread count",
+      message: "Failed to mark notification as read",
     });
   }
 });
 
+// PATCH /api/notifications/read-all - Mark all as read
 router.patch("/read-all", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -104,25 +117,25 @@ router.patch("/read-all", authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /api/notifications/:id - Delete a notification
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // Verify notification belongs to user
-    const checkResult = await pool.query(
-      `SELECT id FROM notifications WHERE id = $1 AND user_id = $2`,
+    const result = await pool.query(
+      `DELETE FROM notifications 
+       WHERE id = $1 AND user_id = $2
+       RETURNING id`,
       [id, userId],
     );
 
-    if (checkResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Notification not found",
       });
     }
-
-    await pool.query(`DELETE FROM notifications WHERE id = $1`, [id]);
 
     res.json({
       success: true,
@@ -137,6 +150,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /api/notifications/read/all - Delete all read notifications
 router.delete("/read/all", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;

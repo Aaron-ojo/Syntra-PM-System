@@ -1,47 +1,68 @@
-import React, { useEffect, useState } from 'react'
-import { useAuthStore } from '../stores/authStore'
-import { useNavigate, Link } from 'react-router-dom'
-import { LogOut, Users, FolderKanban, ChevronRight } from 'lucide-react'
-import teamService from '../services/teamService'
-import projectService from '../services/projectService'
+import React, { useEffect, useState } from "react";
+import { useAuthStore } from "../stores/authStore";
+import { useNavigate, Link } from "react-router-dom";
+import { LogOut, Users, FolderKanban, ChevronRight, Bell } from "lucide-react";
+import teamService from "../services/teamService";
+import projectService from "../services/projectService";
+import NotificationsPanel from "../components/NotificationsPanel";
+import notificationService from "../services/notificationService";
 
 interface Team {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuthStore()
-  const navigate = useNavigate()
-  const [teams, setTeams] = useState<Team[]>([])
-  const [projectCount, setProjectCount] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [projectCount, setProjectCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadData();
+    loadUnreadCount();
+  }, []);
 
   const loadData = async () => {
     try {
-      const teamsData = await teamService.getTeams()
-      // Handle if teamsData is an array or object
-      const teamsArray = Array.isArray(teamsData) ? teamsData : (teamsData as any).data || []
-      setTeams(teamsArray)
-      
-      const projectsData = await projectService.getProjects()
-      const projectsArray = Array.isArray(projectsData) ? projectsData : (projectsData as any).data || []
-      setProjectCount(projectsArray.length)
+      const teamsData = await teamService.getTeams();
+      const teamsArray = Array.isArray(teamsData)
+        ? teamsData
+        : (teamsData as any).data || [];
+      setTeams(teamsArray);
+
+      const projectsData = await projectService.getProjects();
+      const projectsArray = Array.isArray(projectsData)
+        ? projectsData
+        : (projectsData as any).data || [];
+      setProjectCount(projectsArray.length);
     } catch (error) {
-      console.error('Failed to load dashboard data:', error)
+      console.error("Failed to load dashboard data:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const loadUnreadCount = async () => {
+    try {
+      const count = await notificationService.getUnreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error("Failed to load unread count:", error);
+    }
+  };
 
   const handleLogout = () => {
-    logout()
-    navigate('/')
-  }
+    logout();
+    navigate("/");
+  };
+
+  const handleUnreadCountChange = (count: number) => {
+    setUnreadCount(count);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,15 +71,46 @@ const Dashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Syntra</h1>
-            <p className="text-sm text-gray-500">Welcome back, {user?.name?.split(' ')[0] || 'User'}!</p>
+            <p className="text-sm text-gray-500">
+              Welcome back, {user?.name?.split(" ")[0] || "User"}!
+            </p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors active:bg-red-100"
-            aria-label="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-2 relative">
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative"
+                aria-label="Notifications"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notifications Panel Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 z-50">
+                  <NotificationsPanel
+                    isOpen={showNotifications}
+                    onClose={() => setShowNotifications(false)}
+                    onUnreadCountChange={handleUnreadCountChange}
+                  />
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors active:bg-red-100"
+              aria-label="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -66,7 +118,10 @@ const Dashboard: React.FC = () => {
       <div className="p-4 space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <Link to="/teams" className="bg-white rounded-lg shadow p-4 active:bg-gray-50 transition-colors">
+          <Link
+            to="/teams"
+            className="bg-white rounded-lg shadow p-4 active:bg-gray-50 transition-colors"
+          >
             <div className="flex items-center justify-between mb-2">
               <Users className="w-6 h-6 text-blue-600" />
               <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -74,7 +129,7 @@ const Dashboard: React.FC = () => {
             <p className="text-2xl font-bold text-gray-900">{teams.length}</p>
             <p className="text-sm text-gray-600">Teams</p>
           </Link>
-          
+
           <div className="bg-white rounded-lg shadow p-4">
             <div className="mb-2">
               <FolderKanban className="w-6 h-6 text-purple-600" />
@@ -90,8 +145,8 @@ const Dashboard: React.FC = () => {
             <h2 className="font-semibold text-gray-900">Quick Actions</h2>
           </div>
           <div className="divide-y divide-gray-100">
-            <Link 
-              to="/teams" 
+            <Link
+              to="/teams"
               className="flex items-center justify-between p-4 active:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -100,7 +155,9 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">View Teams</p>
-                  <p className="text-sm text-gray-500">Manage your teams and members</p>
+                  <p className="text-sm text-gray-500">
+                    Manage your teams and members
+                  </p>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -120,8 +177,8 @@ const Dashboard: React.FC = () => {
           ) : teams.length === 0 ? (
             <div className="p-4 text-center text-gray-500 py-8">
               <p className="text-sm">No teams yet</p>
-              <Link 
-                to="/teams" 
+              <Link
+                to="/teams"
                 className="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
               >
                 Create your first team
@@ -130,7 +187,7 @@ const Dashboard: React.FC = () => {
           ) : (
             <div className="divide-y divide-gray-100">
               {teams.slice(0, 3).map((team) => (
-                <Link 
+                <Link
                   key={team.id}
                   to={`/team/${team.id}`}
                   className="flex items-center justify-between p-4 active:bg-gray-50 transition-colors"
@@ -147,7 +204,10 @@ const Dashboard: React.FC = () => {
                 </Link>
               ))}
               {teams.length > 3 && (
-                <Link to="/teams" className="block p-4 text-center text-blue-600 text-sm active:bg-gray-50">
+                <Link
+                  to="/teams"
+                  className="block p-4 text-center text-blue-600 text-sm active:bg-gray-50"
+                >
                   View all {teams.length} teams →
                 </Link>
               )}
@@ -159,13 +219,19 @@ const Dashboard: React.FC = () => {
       {/* Bottom Navigation Bar - Mobile */}
       <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-2 sm:hidden">
         <div className="flex items-center justify-around">
-          <Link to="/dashboard" className="flex flex-col items-center py-1 text-blue-600">
+          <Link
+            to="/dashboard"
+            className="flex flex-col items-center py-1 text-blue-600"
+          >
             <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
               <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
             </div>
             <span className="text-xs mt-1">Home</span>
           </Link>
-          <Link to="/teams" className="flex flex-col items-center py-1 text-gray-500">
+          <Link
+            to="/teams"
+            className="flex flex-col items-center py-1 text-gray-500"
+          >
             <Users className="w-5 h-5" />
             <span className="text-xs mt-1">Teams</span>
           </Link>
@@ -176,7 +242,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;

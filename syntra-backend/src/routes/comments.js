@@ -12,10 +12,12 @@ async function createNotification(
   taskId,
   commentId,
 ) {
+  console.log("🔔 Creating notification for user:", userId, "type:", type);
   try {
-    await pool.query(
+    const result = await pool.query(
       `INSERT INTO notifications (user_id, type, title, content, data)
-       VALUES ($1, $2, $3, $4, $5)`,
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
       [
         userId,
         type,
@@ -24,9 +26,9 @@ async function createNotification(
         JSON.stringify({ task_id: taskId, comment_id: commentId }),
       ],
     );
+    console.log("✅ Notification created with ID:", result.rows[0].id);
   } catch (error) {
-    console.error("Error creating notification:", error);
-    // Don't throw - notification failure shouldn't break the comment
+    console.error("❌ Error creating notification:", error);
   }
 }
 
