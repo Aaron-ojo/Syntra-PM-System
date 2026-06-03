@@ -1,18 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../stores/authStore";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  LogOut,
-  Users,
-  FolderKanban,
-  ChevronRight,
-  Bell,
-  User,
-} from "lucide-react";
+import { Users, FolderKanban, ChevronRight } from "lucide-react";
 import teamService from "../services/teamService";
 import projectService from "../services/projectService";
-import NotificationsPanel from "../components/NotificationsPanel";
-import notificationService from "../services/notificationService";
 
 interface Team {
   id: string;
@@ -20,18 +11,14 @@ interface Team {
 }
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>([]);
   const [projectCount, setProjectCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     loadData();
-    loadUnreadCount();
   }, []);
 
   const loadData = async () => {
@@ -54,240 +41,127 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const loadUnreadCount = async () => {
-    try {
-      const count = await notificationService.getUnreadCount();
-      setUnreadCount(count);
-    } catch (error) {
-      console.error("Failed to load unread count:", error);
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
-  const handleUnreadCountChange = (count: number) => {
-    setUnreadCount(count);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Syntra</h1>
-            <p className="text-sm text-gray-500">
-              Welcome back, {user?.name?.split(" ")[0] || "User"}!
-            </p>
+    <div className="space-y-6">
+      {/* Welcome Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Welcome back, {user?.name?.split(" ")[0] || "User"}! 👋
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Here's what's happening with your projects today.
+        </p>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 gap-3">
+        <Link
+          to="/teams"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
           </div>
-          <div className="flex items-center space-x-2 relative">
-            {/* Notification Bell */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative"
-                aria-label="Notifications"
-              >
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {teams.length}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Teams</p>
+        </Link>
 
-              {/* Notifications Panel Dropdown */}
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 z-50">
-                  <NotificationsPanel
-                    isOpen={showNotifications}
-                    onClose={() => setShowNotifications(false)}
-                    onUnreadCountChange={handleUnreadCountChange}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* User Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-full hover:bg-blue-700 transition-colors"
-                aria-label="User menu"
-              >
-                <span className="text-white text-sm font-medium">
-                  {user?.name?.charAt(0).toUpperCase() || "U"}
-                </span>
-              </button>
-
-              {/* User Menu Dropdown */}
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                  <div className="p-3 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-900">
-                      {user?.name}
-                    </p>
-                    <p className="text-xs text-gray-500">{user?.email}</p>
-                  </div>
-                  <div className="py-1">
-                    <Link
-                      to="/profile"
-                      onClick={() => setShowUserMenu(false)}
-                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                      <User className="w-4 h-4" />
-                      <span>Profile</span>
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        handleLogout();
-                      }}
-                      className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Logout</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <div className="mb-2">
+            <FolderKanban className="w-6 h-6 text-purple-600 dark:text-purple-400" />
           </div>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            {projectCount}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Projects</p>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="p-4 space-y-6">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-3">
+      {/* Quick Actions */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="font-semibold text-gray-900 dark:text-white">
+            Quick Actions
+          </h2>
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
           <Link
             to="/teams"
-            className="bg-white rounded-lg shadow p-4 active:bg-gray-50 transition-colors"
+            className="flex items-center justify-between p-4 active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
           >
-            <div className="flex items-center justify-between mb-2">
-              <Users className="w-6 h-6 text-blue-600" />
-              <ChevronRight className="w-4 h-4 text-gray-400" />
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">
+                  View Teams
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Manage your teams and members
+                </p>
+              </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{teams.length}</p>
-            <p className="text-sm text-gray-600">Teams</p>
+            <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
           </Link>
-
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="mb-2">
-              <FolderKanban className="w-6 h-6 text-purple-600" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{projectCount}</p>
-            <p className="text-sm text-gray-600">Projects</p>
-          </div>
         </div>
+      </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Quick Actions</h2>
+      {/* Recent Teams Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="font-semibold text-gray-900 dark:text-white">
+            Your Teams
+          </h2>
+        </div>
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
           </div>
-          <div className="divide-y divide-gray-100">
+        ) : teams.length === 0 ? (
+          <div className="p-4 text-center text-gray-500 dark:text-gray-400 py-8">
+            <p className="text-sm">No teams yet</p>
             <Link
               to="/teams"
-              className="flex items-center justify-between p-4 active:bg-gray-50 transition-colors"
+              className="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
             >
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">View Teams</p>
-                  <p className="text-sm text-gray-500">
-                    Manage your teams and members
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
+              Create your first team
             </Link>
           </div>
-        </div>
-
-        {/* Recent Teams Section */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Your Teams</h2>
-          </div>
-          {loading ? (
-            <div className="p-8 text-center">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            </div>
-          ) : teams.length === 0 ? (
-            <div className="p-4 text-center text-gray-500 py-8">
-              <p className="text-sm">No teams yet</p>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {teams.slice(0, 3).map((team) => (
+              <Link
+                key={team.id}
+                to={`/team/${team.id}`}
+                className="flex items-center justify-between p-4 active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {team.name}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              </Link>
+            ))}
+            {teams.length > 3 && (
               <Link
                 to="/teams"
-                className="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+                className="block p-4 text-center text-blue-600 dark:text-blue-400 text-sm active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
               >
-                Create your first team
+                View all {teams.length} teams →
               </Link>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {teams.slice(0, 3).map((team) => (
-                <Link
-                  key={team.id}
-                  to={`/team/${team.id}`}
-                  className="flex items-center justify-between p-4 active:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Users className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{team.name}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
-                </Link>
-              ))}
-              {teams.length > 3 && (
-                <Link
-                  to="/teams"
-                  className="block p-4 text-center text-blue-600 text-sm active:bg-gray-50"
-                >
-                  View all {teams.length} teams →
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom Navigation Bar - Mobile */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-2 sm:hidden">
-        <div className="flex items-center justify-around">
-          <Link
-            to="/dashboard"
-            className="flex flex-col items-center py-1 text-blue-600"
-          >
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-            </div>
-            <span className="text-xs mt-1">Home</span>
-          </Link>
-          <Link
-            to="/teams"
-            className="flex flex-col items-center py-1 text-gray-500"
-          >
-            <Users className="w-5 h-5" />
-            <span className="text-xs mt-1">Teams</span>
-          </Link>
-          <Link
-            to="/profile"
-            className="flex flex-col items-center py-1 text-gray-500"
-          >
-            <User className="w-5 h-5" />
-            <span className="text-xs mt-1">Profile</span>
-          </Link>
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
