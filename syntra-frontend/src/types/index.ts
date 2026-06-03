@@ -2,11 +2,11 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  created_at: string;
-  // Make these optional in case backend returns different names
   full_name?: string;
+  avatar?: string;
+  avatar_url?: string;
+  created_at: string;
 }
-
 export interface AuthResponse {
   token: string;
   user: User;

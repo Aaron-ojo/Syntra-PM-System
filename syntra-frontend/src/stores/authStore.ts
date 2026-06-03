@@ -10,6 +10,7 @@ interface AuthState {
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
+  updateUser: (data: Partial<User>) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -55,6 +56,12 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem("token");
           set({ user: null, isLoading: false });
         }
+      },
+
+      updateUser: async (data: Partial<User>) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, ...data } : null,
+        }));
       },
     }),
     {
