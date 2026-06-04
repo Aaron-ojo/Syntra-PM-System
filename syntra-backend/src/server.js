@@ -3,7 +3,7 @@ import express from "express";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import searchRoutes from "./routes/search.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import teamRoutes from "./routes/teams.js";
@@ -43,6 +43,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/search", searchRoutes);
 
 // Test route
 app.get("/", (req, res) => {

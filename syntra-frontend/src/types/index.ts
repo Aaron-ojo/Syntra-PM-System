@@ -107,3 +107,16 @@ export interface Notification {
   };
   created_at: string;
 }
+
+// Search Types
+export interface SearchResult {
+  id: string;
+  type: "task" | "project" | "team";
+  title: string;
+  description?: string;
+  url: string;
+  team_name?: string;
+  project_name?: string;
+  status?: string;
+  priority?: string;
+}
