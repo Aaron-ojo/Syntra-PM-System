@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import taskService from "../services/taskService";
 import projectService from "../services/projectService";
-import searchService from "../services/searchService";
 import TaskDetailsModal from "../components/TaskDetailsModal";
 
 import {
@@ -34,7 +33,6 @@ import {
   Calendar,
   X,
   Filter,
-  ChevronDown,
   RotateCcw,
 } from "lucide-react";
 
@@ -126,6 +124,11 @@ const SortableTaskCard: React.FC<SortableTaskCardProps> = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const isOverdue =
+    task.due_date &&
+    new Date(task.due_date) < new Date() &&
+    task.status !== "done";
+
   return (
     <div
       ref={setNodeRef}
@@ -163,7 +166,9 @@ const SortableTaskCard: React.FC<SortableTaskCardProps> = ({
         </div>
 
         {task.due_date && (
-          <div className="flex items-center text-xs text-gray-400 dark:text-gray-500">
+          <div
+            className={`flex items-center text-xs ${isOverdue ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}
+          >
             <Calendar className="w-3 h-3 mr-1" />
             {new Date(task.due_date).toLocaleDateString()}
           </div>
@@ -298,7 +303,6 @@ const ProjectBoard: React.FC = () => {
 
   const loadTeamMembers = async () => {
     try {
-      // Get project to find team_id
       const projectData = await projectService.getProject(projectId!);
       if (projectData && projectData.team_id) {
         const response = await fetch(
@@ -650,12 +654,18 @@ const ProjectBoard: React.FC = () => {
                     {activeTask.description}
                   </p>
                 )}
-                <div>
+                <div className="flex items-center justify-between">
                   <span
                     className={`px-2 py-0.5 rounded text-xs font-medium ${priorityColors[activeTask.priority]}`}
                   >
                     {activeTask.priority}
                   </span>
+                  {activeTask.due_date && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      <Calendar className="w-3 h-3 inline mr-1" />
+                      {new Date(activeTask.due_date).toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
               </div>
             ) : null}

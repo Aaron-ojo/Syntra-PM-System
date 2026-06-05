@@ -2,7 +2,16 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { useThemeStore } from "../stores/themeStore";
-import { Bell, User, LogOut, Home, Sun, Moon, Search } from "lucide-react";
+import {
+  Bell,
+  User,
+  LogOut,
+  Home,
+  Sun,
+  Moon,
+  Search,
+  Calendar as CalendarIcon,
+} from "lucide-react";
 import NotificationsPanel from "./NotificationsPanel";
 import SearchModal from "./SearchModal";
 import notificationService from "../services/notificationService";
@@ -101,6 +110,15 @@ const AppHeader: React.FC = () => {
               aria-label="Home"
             >
               <Home className="w-5 h-5" />
+            </button>
+
+            {/* Calendar Button */}
+            <button
+              onClick={() => navigate("/calendar")}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+              aria-label="Calendar"
+            >
+              <CalendarIcon className="w-5 h-5" />
             </button>
 
             {/* Theme Toggle */}

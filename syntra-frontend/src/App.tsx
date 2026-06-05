@@ -8,6 +8,7 @@ import Teams from "./pages/Teams";
 import TeamDetails from "./pages/TeamDetails";
 import ProjectBoard from "./pages/ProjectBoard";
 import Profile from "./pages/Profile";
+import Calendar from "./pages/Calendar";
 import MainLayout from "./layouts/MainLayout";
 import AuthLayout from "./layouts/AuthLayout";
 
@@ -22,6 +23,20 @@ function App() {
             background: "#363636",
             color: "#fff",
           },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: "#22c55e",
+              secondary: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: "#ef4444",
+              secondary: "#fff",
+            },
+          },
         }}
       />
       <Routes>
@@ -33,11 +48,13 @@ function App() {
 
         {/* Main App Routes - With Persistent Header */}
         <Route element={<MainLayout />}>
+          <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/teams" element={<Teams />} />
           <Route path="/team/:teamId" element={<TeamDetails />} />
           <Route path="/project/:projectId" element={<ProjectBoard />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/calendar" element={<Calendar />} />
         </Route>
       </Routes>
     </BrowserRouter>

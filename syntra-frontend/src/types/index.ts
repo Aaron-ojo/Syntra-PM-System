@@ -120,3 +120,23 @@ export interface SearchResult {
   status?: string;
   priority?: string;
 }
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  status: SyntraTaskStatus;
+  priority: SyntraTaskPriority;
+  project_id: string;
+  assignee_id?: string;
+  created_by: string;
+  due_date?: string; // Make sure this exists
+  position: number;
+  created_at: string;
+  updated_at: string;
+  assignee?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
